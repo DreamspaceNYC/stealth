@@ -1,30 +1,453 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DeepSite | Build with AI ✨</title>
-    <meta
-      name="description"
-      content="DeepSite is a web development tool that
-    helps you build websites with AI, no code required. Let's deploy your
-    website with DeepSite and enjoy the magic of AI."
-    />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
-      rel="stylesheet"
-    />
-    <script type="module" crossorigin src="/assets/index-Bh8-zJG7.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-yBUCU65G.css">
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StealthEdit AI - Video Processing Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <style>
+        .dropzone {
+            border: 2px dashed #6366f1;
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+        }
+        .dropzone.active {
+            border-color: #10b981;
+            background-color: rgba(16, 185, 129, 0.05);
+        }
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+        .edit-suggestion {
+            transition: all 0.2s ease;
+        }
+        .edit-suggestion:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <header class="mb-12 text-center">
+            <h1 class="text-4xl font-bold text-indigo-600 mb-2">StealthEdit AI</h1>
+            <p class="text-gray-600">Upload or paste a video URL to apply stealth optimizations</p>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <!-- Upload Section -->
+            <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+                <div class="flex flex-col md:flex-row gap-6">
+                    <!-- Drag & Drop Upload -->
+                    <div class="flex-1">
+                        <div id="dropzone" class="dropzone p-8 text-center cursor-pointer h-full flex flex-col items-center justify-center">
+                            <i data-feather="upload" class="w-12 h-12 text-indigo-500 mb-4"></i>
+                            <h3 class="text-lg font-medium text-gray-700 mb-2">Drag & Drop Video</h3>
+                            <p class="text-gray-500 mb-4">or click to browse files</p>
+                            <input type="file" id="fileInput" class="hidden" accept="video/*">
+                            <button id="browseBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">
+                                Select File
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Or Divider -->
+                    <div class="flex items-center justify-center my-4 md:my-0">
+                        <div class="h-px w-16 bg-gray-300 md:h-16 md:w-px"></div>
+                    </div>
+
+                    <!-- URL Input -->
+                    <div class="flex-1 flex flex-col justify-center">
+                        <h3 class="text-lg font-medium text-gray-700 mb-4">Paste Video URL</h3>
+                        <div class="flex">
+                            <input type="text" id="videoUrl" placeholder="https://example.com/video.mp4" 
+                                   class="flex-1 px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <button id="processUrlBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition">
+                                Process
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Section (Hidden by default) -->
+            <div id="progressSection" class="hidden bg-white rounded-xl shadow-md p-6 mb-8 fade-in">
+                <h3 class="text-lg font-medium text-gray-700 mb-4">Processing Video</h3>
+                <div class="mb-4">
+                    <div class="flex justify-between mb-1">
+                        <span class="text-sm font-medium text-gray-700">Analyzing video...</span>
+                        <span id="progressPercent" class="text-sm font-medium text-gray-700">0%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div id="progressBar" class="progress-bar bg-indigo-600 h-2.5 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div id="editSuggestions" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                    <!-- Edit suggestions will be populated here -->
+                </div>
+            </div>
+
+            <!-- GitHub Toggle -->
+            <div id="githubSection" class="hidden bg-white rounded-xl shadow-md p-6 mb-8 fade-in">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-700">Push to GitHub</h3>
+                        <p class="text-gray-500 text-sm">Automatically commit processed files to your repository</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="githubToggle" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                </div>
+                <div id="githubConfig" class="hidden mt-4 space-y-4">
+                    <div>
+                        <label for="repoUrl" class="block text-sm font-medium text-gray-700 mb-1">Repository URL</label>
+                        <input type="text" id="repoUrl" placeholder="https://github.com/username/repo" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label for="accessToken" class="block text-sm font-medium text-gray-700 mb-1">Access Token</label>
+                        <input type="password" id="accessToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Section (Hidden by default) -->
+            <div id="resultsSection" class="hidden bg-white rounded-xl shadow-md p-6 fade-in">
+                <h3 class="text-lg font-medium text-gray-700 mb-4">Processing Complete</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <!-- File Info -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="font-medium text-gray-700 mb-3 flex items-center">
+                            <i data-feather="file" class="w-4 h-4 mr-2"></i> File Information
+                        </h4>
+                        <div class="space-y-2">
+                            <div>
+                                <span class="text-sm text-gray-500">Filename:</span>
+                                <p id="resultFilename" class="font-medium">processed_video.mp4</p>
+                            </div>
+                            <div>
+                                <span class="text-sm text-gray-500">Path:</span>
+                                <p id="resultPath" class="font-mono text-sm">outputs/2023-11-15T14:30:22/</p>
+                            </div>
+                            <div>
+                                <span class="text-sm text-gray-500">Spoofed Hash:</span>
+                                <p id="resultHash" class="font-mono text-sm">a1b2c3d4e5f6...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Applied Edits -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="font-medium text-gray-700 mb-3 flex items-center">
+                            <i data-feather="edit" class="w-4 h-4 mr-2"></i> Applied Edits
+                        </h4>
+                        <ul id="appliedEdits" class="list-disc list-inside text-sm space-y-1">
+                            <!-- Applied edits will be populated here -->
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <button id="downloadBtn" class="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition flex items-center justify-center">
+                        <i data-feather="download" class="w-5 h-5 mr-2"></i> Download File
+                    </button>
+                    <button id="githubPushBtn" class="flex-1 px-4 py-3 bg-gray-800 text-white rounded-md hover:bg-gray-900 transition flex items-center justify-center">
+                        <i data-feather="github" class="w-5 h-5 mr-2"></i> Push to GitHub
+                    </button>
+                    <button id="newFileBtn" class="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition flex items-center justify-center">
+                        <i data-feather="plus" class="w-5 h-5 mr-2"></i> Process Another
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="mt-12 text-center text-gray-500 text-sm">
+            <p>StealthEdit AI - Video processing with stealth optimizations</p>
+        </footer>
+    </div>
+
+    <script>
+        // Initialize Feather Icons
+        feather.replace();
+        
+        // DOM Elements
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('fileInput');
+        const browseBtn = document.getElementById('browseBtn');
+        const videoUrl = document.getElementById('videoUrl');
+        const processUrlBtn = document.getElementById('processUrlBtn');
+        const progressSection = document.getElementById('progressSection');
+        const progressBar = document.getElementById('progressBar');
+        const progressPercent = document.getElementById('progressPercent');
+        const editSuggestions = document.getElementById('editSuggestions');
+        const githubSection = document.getElementById('githubSection');
+        const githubToggle = document.getElementById('githubToggle');
+        const githubConfig = document.getElementById('githubConfig');
+        const resultsSection = document.getElementById('resultsSection');
+        const resultFilename = document.getElementById('resultFilename');
+        const resultPath = document.getElementById('resultPath');
+        const resultHash = document.getElementById('resultHash');
+        const appliedEdits = document.getElementById('appliedEdits');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const githubPushBtn = document.getElementById('githubPushBtn');
+        const newFileBtn = document.getElementById('newFileBtn');
+
+        // Sample edit suggestions (would come from backend in real app)
+        const sampleEditSuggestions = [
+            { id: 'crop', name: 'Smart Crop', description: 'Remove black bars and unnecessary edges', icon: 'crop', recommended: true },
+            { id: 'compress', name: 'Optimize Compression', description: 'Reduce file size without quality loss', icon: 'hard-drive', recommended: true },
+            { id: 'audio', name: 'Audio Normalization', description: 'Balance audio levels for consistency', icon: 'volume-2', recommended: false },
+            { id: 'metadata', name: 'Metadata Spoofing', description: 'Randomize creation dates and device info', icon: 'code', recommended: true },
+            { id: 'hash', name: 'Hash Mutation', description: 'Generate new file signature', icon: 'lock', recommended: true },
+            { id: 'filters', name: 'Color Correction', description: 'Adjust brightness and contrast', icon: 'droplet', recommended: false }
+        ];
+
+        // Sample applied edits (would come from backend in real app)
+        const sampleAppliedEdits = [
+            'Smart Crop: Removed 10% from edges',
+            'Optimized Compression: Reduced size by 45%',
+            'Metadata Spoofed: Randomized EXIF data',
+            'Hash Mutation: New SHA-1 generated'
+        ];
+
+        // Event Listeners
+        browseBtn.addEventListener('click', () => fileInput.click());
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                processFile(e.target.files[0]);
+            }
+        });
+
+        processUrlBtn.addEventListener('click', () => {
+            const url = videoUrl.value.trim();
+            if (url) {
+                // In a real app, we would validate the URL here
+                processFile(url, true);
+            } else {
+                alert('Please enter a valid video URL');
+            }
+        });
+
+        githubToggle.addEventListener('change', () => {
+            githubConfig.classList.toggle('hidden', !githubToggle.checked);
+        });
+
+        newFileBtn.addEventListener('click', resetForm);
+
+        // Drag & Drop Events
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight() {
+            dropzone.classList.add('active');
+        }
+
+        function unhighlight() {
+            dropzone.classList.remove('active');
+        }
+
+        dropzone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const file = dt.files[0];
+            if (file && file.type.startsWith('video/')) {
+                processFile(file);
+            } else {
+                alert('Please upload a video file');
+            }
+        });
+
+        // Processing Functions
+        function processFile(file, isUrl = false) {
+            // Show progress section
+            progressSection.classList.remove('hidden');
+            githubSection.classList.remove('hidden');
+            
+            // Scroll to progress section
+            progressSection.scrollIntoView({ behavior: 'smooth' });
+            
+            // Simulate processing (in a real app, this would be API calls)
+            simulateProcessing();
+            
+            // Populate edit suggestions
+            renderEditSuggestions();
+        }
+
+        function simulateProcessing() {
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 10;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    showResults();
+                }
+                
+                progressBar.style.width = `${progress}%`;
+                progressPercent.textContent = `${Math.round(progress)}%`;
+                
+                // Update progress text based on progress
+                const progressText = document.querySelector('#progressSection .text-gray-700');
+                if (progress < 30) {
+                    progressText.textContent = 'Analyzing video...';
+                } else if (progress < 70) {
+                    progressText.textContent = 'Applying optimizations...';
+                } else {
+                    progressText.textContent = 'Finalizing edits...';
+                }
+            }, 500);
+        }
+
+        function renderEditSuggestions() {
+            editSuggestions.innerHTML = '';
+            
+            sampleEditSuggestions.forEach(suggestion => {
+                const suggestionEl = document.createElement('div');
+                suggestionEl.className = `edit-suggestion bg-white border rounded-lg p-4 cursor-pointer ${suggestion.recommended ? 'border-green-200' : 'border-gray-200'}`;
+                suggestionEl.innerHTML = `
+                    <div class="flex items-start">
+                        <div class="mr-3 p-2 rounded-full ${suggestion.recommended ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'}">
+                            <i data-feather="${suggestion.icon}" class="w-5 h-5"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-start">
+                                <h4 class="font-medium text-gray-800">${suggestion.name}</h4>
+                                ${suggestion.recommended ? '<span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Recommended</span>' : ''}
+                            </div>
+                            <p class="text-sm text-gray-600 mt-1">${suggestion.description}</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer ml-2">
+                            <input type="checkbox" ${suggestion.recommended ? 'checked' : ''} class="sr-only peer">
+                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                        </label>
+                    </div>
+                `;
+                editSuggestions.appendChild(suggestionEl);
+            });
+            
+            // Refresh feather icons
+            setTimeout(() => feather.replace(), 10);
+        }
+
+        function showResults() {
+            // Hide progress section
+            progressSection.classList.add('hidden');
+            
+            // Show results section
+            resultsSection.classList.remove('hidden');
+            
+            // Scroll to results
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+            
+            // Populate results
+            const now = new Date();
+            const timestamp = now.toISOString().replace(/[:.]/g, '-');
+            const randomHash = Array.from({length: 40}, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join('');
+            
+            resultFilename.textContent = `stealth_${timestamp.slice(0, 10)}.mp4`;
+            resultPath.textContent = `outputs/${timestamp}/`;
+            resultHash.textContent = randomHash;
+            
+            // Populate applied edits
+            appliedEdits.innerHTML = '';
+            sampleAppliedEdits.forEach(edit => {
+                const li = document.createElement('li');
+                li.textContent = edit;
+                appliedEdits.appendChild(li);
+            });
+        }
+
+        function resetForm() {
+            // Hide results and github sections
+            resultsSection.classList.add('hidden');
+            githubSection.classList.add('hidden');
+            
+            // Reset form elements
+            fileInput.value = '';
+            videoUrl.value = '';
+            progressBar.style.width = '0%';
+            progressPercent.textContent = '0%';
+            githubToggle.checked = false;
+            githubConfig.classList.add('hidden');
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Simulate GitHub push
+        githubPushBtn.addEventListener('click', () => {
+            if (!githubToggle.checked) {
+                alert('Please enable GitHub integration first');
+                return;
+            }
+            
+            const repoUrl = document.getElementById('repoUrl').value;
+            const accessToken = document.getElementById('accessToken').value;
+            
+            if (!repoUrl || !accessToken) {
+                alert('Please enter both repository URL and access token');
+                return;
+            }
+            
+            // Simulate GitHub push
+            githubPushBtn.innerHTML = '<i data-feather="loader" class="w-5 h-5 mr-2 animate-spin"></i> Pushing...';
+            feather.replace();
+            
+            setTimeout(() => {
+                githubPushBtn.innerHTML = '<i data-feather="check" class="w-5 h-5 mr-2"></i> Push Successful';
+                feather.replace();
+                
+                setTimeout(() => {
+                    githubPushBtn.innerHTML = '<i data-feather="github" class="w-5 h-5 mr-2"></i> Push to GitHub';
+                    feather.replace();
+                }, 2000);
+            }, 3000);
+        });
+
+        // Simulate download
+        downloadBtn.addEventListener('click', () => {
+            downloadBtn.innerHTML = '<i data-feather="download" class="w-5 h-5 mr-2 animate-spin"></i> Downloading...';
+            feather.replace();
+            
+            setTimeout(() => {
+                downloadBtn.innerHTML = '<i data-feather="check" class="w-5 h-5 mr-2"></i> Downloaded';
+                feather.replace();
+                
+                setTimeout(() => {
+                    downloadBtn.innerHTML = '<i data-feather="download" class="w-5 h-5 mr-2"></i> Download File';
+                    feather.replace();
+                }, 2000);
+            }, 2000);
+        });
+    </script>
+<p style="border-radius: 8px; text-align: center; font-size: 12px; color: #fff; margin-top: 16px;position: fixed; left: 8px; bottom: 8px; z-index: 10; background: rgba(0, 0, 0, 0.8); padding: 4px 8px;">Made with <img src="https://enzostvs-deepsite.hf.space/logo.svg" alt="DeepSite Logo" style="width: 16px; height: 16px; vertical-align: middle;display:inline-block;margin-right:3px;filter:brightness(0) invert(1);"><a href="https://enzostvs-deepsite.hf.space" style="color: #fff;text-decoration: underline;" target="_blank" >DeepSite</a> - 🧬 <a href="https://enzostvs-deepsite.hf.space?remix=Igbalode/stealth" style="color: #fff;text-decoration: underline;" target="_blank" >Remix</a></p></body>
 </html>
